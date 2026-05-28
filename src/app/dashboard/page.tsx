@@ -1,6 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/SignOutButton";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 export default async function DashboardPage() {
   const supabase = await createServerClient();
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
           New bill (coming soon)
         </button>
       </main>
+      <InstallPrompt />
     </div>
   );
 }
