@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getDb } from "@/lib/db/client";
 import { splits } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -27,18 +28,20 @@ export async function DraftsList({ userId }: { userId: string }) {
         const tip = parseFloat(split.tip);
         const total = subtotal + tax + tip;
         return (
-          <li
-            key={split.id}
-            className="border border-neutral-200 rounded-lg px-4 py-3 flex items-center justify-between"
-          >
-            <div>
-              <p className="font-medium">{split.name}</p>
-              <p className="text-xs text-neutral-500">
-                {new Date(split.createdAt).toLocaleDateString()} ·{" "}
-                {split.status}
-              </p>
-            </div>
-            <span className="font-medium">${total.toFixed(2)}</span>
+          <li key={split.id}>
+            <Link
+              href={`/split/${split.id}`}
+              className="block border border-neutral-200 rounded-lg px-4 py-3 flex items-center justify-between hover:bg-neutral-50 transition"
+            >
+              <div>
+                <p className="font-medium">{split.name}</p>
+                <p className="text-xs text-neutral-500">
+                  {new Date(split.createdAt).toLocaleDateString()} ·{" "}
+                  {split.status}
+                </p>
+              </div>
+              <span className="font-medium">${total.toFixed(2)}</span>
+            </Link>
           </li>
         );
       })}
