@@ -236,13 +236,12 @@ export function AssignmentClient({
           <p className="text-sm text-red-600 text-center">{globalError}</p>
         )}
 
-        <button
-          type="button"
-          disabled
-          className="w-full bg-black text-white rounded-full py-3 font-medium opacity-50 cursor-not-allowed"
+        <a
+          href={`/split/${splitId}/send`}
+          className="block text-center w-full bg-black text-white rounded-full py-3 font-medium hover:bg-neutral-800 transition"
         >
-          Continue to send (Plan 4)
-        </button>
+          Continue to send
+        </a>
       </main>
 
       {openItem && (

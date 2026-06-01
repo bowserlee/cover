@@ -17,7 +17,15 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-white">
       <header className="flex items-center justify-between px-6 py-4 border-b">
         <h1 className="text-xl font-semibold">Cover</h1>
-        <SignOutButton />
+        <div className="flex items-center gap-4">
+          <Link
+            href="/profile"
+            className="text-sm text-neutral-500 hover:text-black transition"
+          >
+            Profile
+          </Link>
+          <SignOutButton />
+        </div>
       </header>
       <main className="px-6 py-8 max-w-md mx-auto flex flex-col gap-8">
         <div className="text-center">
