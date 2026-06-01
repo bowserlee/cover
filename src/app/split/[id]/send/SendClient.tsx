@@ -88,7 +88,9 @@ export function SendClient({
       <header className="flex items-center justify-between px-6 py-4 border-b">
         <button
           type="button"
-          onClick={() => router.push(`/split/${splitId}`)}
+          onClick={() =>
+            router.push(allPaid ? "/dashboard" : `/split/${splitId}`)
+          }
           className="text-sm text-neutral-500 hover:text-black"
         >
           ← Back
