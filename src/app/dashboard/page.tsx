@@ -19,6 +19,12 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-semibold">Cover</h1>
         <div className="flex items-center gap-4">
           <Link
+            href="/settled"
+            className="text-sm text-neutral-500 hover:text-black transition"
+          >
+            Settled
+          </Link>
+          <Link
             href="/profile"
             className="text-sm text-neutral-500 hover:text-black transition"
           >

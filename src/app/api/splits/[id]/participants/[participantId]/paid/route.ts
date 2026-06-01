@@ -52,5 +52,20 @@ export async function PUT(
       )
     );
 
-  return NextResponse.json({ ok: true, paid: payload.paid });
+  // Auto-update split status: closed if all participants paid, open otherwise
+  const splitParticipants = await db
+    .select({ paid: participants.paid })
+    .from(participants)
+    .where(eq(participants.splitId, splitId));
+
+  const allPaid =
+    splitParticipants.length > 0 &&
+    splitParticipants.every((p) => p.paid);
+
+  await db
+    .update(splits)
+    .set({ status: allPaid ? "closed" : "open" })
+    .where(eq(splits.id, splitId));
+
+  return NextResponse.json({ ok: true, paid: payload.paid, splitStatus: allPaid ? "closed" : "open" });
 }
