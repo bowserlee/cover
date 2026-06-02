@@ -12,19 +12,21 @@ const PUBLIC_ICONS = path.resolve(__dirname, "..", "public", "icons");
 
 function svgIcon(size) {
   const corner = Math.round(size * 0.22);
-  const stroke = Math.round(size * 0.085);
+  const stroke = Math.round(size * 0.09);
   const cx = size / 2;
   const cy = size / 2;
-  const r = size * 0.27;
-  // Draw a "C" as an arc opening to the right: from upper-right around to lower-right.
-  // Sweep from angle -55deg to angle 235deg (going counter-clockwise) gives a clean C.
-  const startAngle = -55 * (Math.PI / 180);
-  const endAngle = 235 * (Math.PI / 180);
+  const r = size * 0.32;
+  // C opens to the right.
+  // SVG y-axis is DOWN, so negative angle = above center.
+  // Start at upper-right (-50deg ≈ 1:30 clock position),
+  // end at lower-right (+50deg ≈ 4:30 clock position),
+  // sweepFlag=0 so the arc goes the LONG way around (through the left side).
+  const startAngle = -50 * (Math.PI / 180);
+  const endAngle = 50 * (Math.PI / 180);
   const x1 = cx + r * Math.cos(startAngle);
   const y1 = cy + r * Math.sin(startAngle);
   const x2 = cx + r * Math.cos(endAngle);
   const y2 = cy + r * Math.sin(endAngle);
-  // largeArcFlag=1 because we're sweeping > 180deg
   const arcPath = `M ${x1} ${y1} A ${r} ${r} 0 1 0 ${x2} ${y2}`;
 
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
