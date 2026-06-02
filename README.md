@@ -69,6 +69,48 @@ Remaining: optional Web Push reminders (Plan 6 if needed), design polish pass, t
 
 **Install on iPhone:** open the URL in Safari → Share → Add to Home Screen. Opens fullscreen like a native app, auto-updates on every git push.
 
+## Who this is for & potential use cases
+
+Cover targets the exact moment friction shows up in real life: a group meal where one person fronts the bill. Direct use cases:
+
+- **College students** splitting dinners, lunches, late-night food runs (the original motivating use case — Phi Psi at Stanford)
+- **Roommates** with rotating "I'll grab this one" dynamics
+- **Travel groups** settling up at the end of a trip without the awkwardness
+- **Anyone who's the "designated card"** at a meal and tired of chasing Venmos for the next three days
+
+The wider claim: most existing tools (Splitwise, Plates, Tricount) assume both sides install an app and create accounts. Cover only requires the host to sign in. Participants get a Venmo link via SMS / iMessage / WhatsApp without ever signing up — drastically lower friction, which is what makes a friend group actually adopt it.
+
+## What I'd add next
+
+If I had more time:
+
+- **Web Push reminders** for unpaid balances (nudge the friend who hasn't paid 48 hours later — auto-disabled once they're marked paid)
+- **Settle automation** that nets cross-bill totals between the same friends (you owe Alex $12 from last week, Alex owes you $8 from today → just $4 owed)
+- **Plate-photo AI assignment** — one overhead photo of the table → Claude vision figures out who ate what
+- **Receipt image storage** so the host can revisit and re-edit a bill later if a friend disputes a charge
+- **Recurring bills** (rent, utilities) — different mental model from one-off restaurant bills, would need a separate flow
+- **Tax/tip per-participant override** for cases where one person had a dish that was tax-exempt (alcohol in some jurisdictions, etc.)
+
+## Known limitations
+
+Honest about what doesn't (yet) work:
+
+- **OCR can mis-parse faded thermal-paper receipts**, low-light photos, or receipts with heavy decorative borders. Claude Haiku 4.5 vision is ~95% on typical restaurant receipts; the edit UI assumes some manual correction will happen.
+- **Venmo deep-links don't auto-execute payments.** They open the Venmo app with recipient + amount + memo pre-filled, but the recipient still taps "Send." This is industry standard — including Splitwise. No public Venmo API exists to bypass this.
+- **No automated Zelle support.** Phone numbers are stored on participant + friend records for the host's reference, but Zelle has no public URL scheme so it can't be deep-linked the way Venmo can.
+- **No offline mode.** Cover installs as a PWA but reads/writes still hit Supabase. Going offline mid-flow breaks save.
+- **Single-host model.** Only the bill creator has an account; participants receive links via share sheet but don't sign up. If a participant wants their own running tab view across multiple hosts, that's not supported yet.
+- **No image storage.** Receipt photos are parsed in memory, used to populate the edit screen, and discarded. The text content survives in the DB; the photo itself doesn't.
+
+## AI tools & disclosure
+
+Per the CS 153 AI policy, full disclosure of how AI was used:
+
+- **Claude Code (Claude Opus 4.7)** was the primary coding partner across all 3 weeks of active development. Estimated ~90% of the code in this repo was AI-generated. Architecture decisions were collaborative — I drove the product direction (what to build, when to swap OCR engines, how the assignment UX should feel) and Claude implemented and iterated. Build-log entries describe the specific moments where Claude pushed back on my plans (e.g., reminding me to pressure-test the OCR pivot, surfacing the spec's pre-authorized $20 budget) and where I pushed back on Claude (e.g., the assignment UX rewrite after the modal version was too slow).
+- **Claude Haiku 4.5 vision** is the runtime OCR engine — every receipt the app processes goes through one Anthropic API call. This is the only paid AI usage and the source of the projected ~$5 in lifetime API costs.
+- **No code was forked or copy-pasted from other repos.** The Supabase auth + Drizzle ORM setup was ported from a previous personal project ([Conductor](https://github.com/bowserlee/conductor)) — same author, same patterns — but written fresh for Cover. Everything else in this repo is original.
+- **Dev tools used:** Vercel for hosting, Drizzle Kit for migrations, Supabase web SQL editor as a fallback when the pooler connection failed locally, pnpm for package management.
+
 ## Design + plan
 
 Specs live at [`docs/specs/`](./docs/specs/). Phased implementation plans live at [`docs/plans/`](./docs/plans/). Class artifact at [`docs/build-log.md`](./docs/build-log.md).
