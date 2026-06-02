@@ -133,17 +133,64 @@ User feedback caught two real bugs in the ItemEditor:
 
 ---
 
+### Plan 5 — Friends roster + bill-time quick-add
+
+**The motivation:** the people you eat with regularly are mostly the same people. Re-typing each friend's name + phone + Venmo handle for every bill was the most annoying friction in the existing flow. Not in the original spec — surfaced from actually thinking about using the product.
+
+**Shipped:**
+- [x] New `friends` table (`id`, `userId`, `name`, `phone?`, `venmoHandle?`)
+- [x] `/friends` page with add/edit/remove, accessed from dashboard header
+- [x] `/api/friends` CRUD endpoints
+- [x] Assignment screen shows a "+ Friend" chip row for friends not yet on the bill — tap to add as participant
+- [x] AddParticipantForm grows an "Also save to friends" checkbox
+- [x] Snapshot model: adding a friend to a bill copies their fields into the participant row; future friend edits don't propagate to past bills
+
+**Local migration issue:** my home network blocks port 6543 to Supabase's pooler. `pnpm db:migrate` hung. Worked around by pasting the SQL into Supabase's web SQL Editor. Vercel reaches the pooler fine, so runtime is unaffected. Documented in memory for future me.
+
+### Assignment UX overhaul
+
+After Plan 5 shipped, the tap-item → modal → check-people → done flow felt slow when one person had multiple items.
+
+**Rewrote the pattern:** participant chips are now selectable (tap = active, fills black/white). When a participant is active, tapping an item directly toggles them on/off — no modal. Optimistic UI so taps feel instant; revert on API failure. Item border + ✓ when active person is on it.
+
+Deleted `AssignmentModal.tsx` entirely. Significantly faster for the common case.
+
+### Real PWA icons
+
+The placeholder solid-black icon squares were getting embarrassing. Generated a real icon: black rounded tile + white "C" arc, sized for 192/512 (PWA manifest) + 180 (apple-touch-icon for iOS).
+
+`scripts/generate-icons.mjs` uses `sharp` to render an inline SVG to PNG at each size. First pass had wrong arc angles (made an upward-opening U); fixed by changing the end angle so the arc sweeps the long way through the left side.
+
+### Stats this week (Week 3)
+
+- vitest tests: still 15 passing (no new test code added in Week 3 since the changes were UI-heavy)
+- Commits this week: 40+
+- New routes shipped: `/friends`, `/api/friends`, `/api/friends/[id]`, `/api/ocr`, plus the existing `/split/[id]`, `/split/[id]/send`, `/profile`, `/settled` routes added earlier in the week
+- Files deleted: `tesseract.ts`, `parser.ts`, `parser.test.ts`, `AssignmentModal.tsx` — total churn shows the iteration
+
+**Hours this week:** _[fill in]_
+
+**What was hard this week:**
+- _[fill in — e.g. deciding when to actually pull the Tesseract \$20 trigger; rewriting the assignment UX after just shipping it]_
+
+**What surprised me:**
+- _[fill in — e.g. how much better Claude vision was than expected; how natural the select-person-tap-items flow felt once built]_
+
+---
+
 ## Where Cover is now
 
-End of Week 3 (calendar). Per the original 10-week timeline, this position was supposed to be reached at end of Week 5–6. **Ahead of schedule by ~2–3 weeks.**
+End of Week 3 (calendar). Per the original 10-week timeline, this position covers Weeks 1–5 of planned work plus all of Plan 5 (friends, which wasn't in the original spec). **Ahead of schedule by ~3+ weeks.**
 
-The end-to-end loop works in production for any user with a Google account: snap receipt → AI OCR → edit → assign → send Venmo links → mark paid → auto-archive when settled.
+The end-to-end loop works in production for any user with a Google account: snap receipt → AI OCR → edit → assign → send Venmo links → mark paid → auto-archive when settled. Friends roster cuts the per-bill typing burden. The assignment screen lets you crank through item assignments faster than Splitwise's modal pattern.
 
-Remaining for v1 release:
-- [ ] Use it at a real meal with real friends (the actual test)
-- [ ] Replace placeholder PWA icons (currently solid black squares)
-- [ ] Reminders / Web Push (Plan 5)
-- [ ] Design polish pass
-- [ ] Launch announcements + first real bills tracked
+**Cover v1 is functionally complete.** Live at https://cover-nine-psi.vercel.app.
+
+Remaining for the class deadline:
+- [ ] Use it at one real meal with real friends — the actual product test
+- [ ] Fill in the Hours / What was hard / What surprised me sections (weeks 1–3)
+- [ ] Class presentation deck
+- [ ] Optional: Web Push reminders (only if real usage shows friends forgetting to pay)
+- [ ] Optional: design polish pass (typography, animations)
 
 ---

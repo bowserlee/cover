@@ -22,9 +22,21 @@ This is the better thesis. **Using an AI model to do what 2011 needed hand-tuned
 
 ## Status
 
-**Week 3 of 10 (calendar) / Week 5+ of 10 (work shipped).** The end-to-end loop is live: snap receipt → AI OCR → edit items → assign to people → send Venmo links → mark paid → auto-archive.
+**Week 3 of 10 (calendar).** v1 feature-complete and in production. Original 10-week scope (Weeks 1–9 in the spec) is shipped, leaving the final weeks for usage feedback + presentation prep.
 
-Functionally Cover v1 is shippable. Remaining work is polish: real PWA icons (currently placeholders), reminders/push notifications, design refinement, launch.
+**Full end-to-end loop:**
+
+1. Sign in with Google
+2. Snap or upload a receipt — Claude Haiku 4.5 vision parses it in ~3s
+3. Edit items if anything's off (price, quantity, name)
+4. Save as a draft bill
+5. Open the bill, add people — either type new participants or one-tap from your saved **Friends** roster
+6. **Select a person at the top → tap items to assign them** (faster than the modal pattern most bill-split apps use)
+7. Watch per-person totals reconcile live (proportional tax + tip allocation)
+8. Send each person a personalized Venmo link via the native share sheet
+9. Mark them paid as they pay — when all paid, the bill auto-archives to `/settled`
+
+Remaining: optional Web Push reminders (Plan 6 if needed), design polish pass, the actual launch + class presentation.
 
 ## Stack
 
@@ -34,8 +46,22 @@ Functionally Cover v1 is shippable. Remaining work is polish: real PWA icons (cu
 - **Claude Haiku 4.5 vision** for receipt OCR (~$0.003/receipt)
 - Web Share API for native share sheets
 - PWA shell — installable on iOS Safari and Android Chrome
+- Sharp for programmatic icon generation
 - Vercel hosting on the free tier
 - Vitest for unit tests (15 passing)
+
+## Routes
+
+| Route | What it does |
+|---|---|
+| `/login` | Google OAuth sign-in |
+| `/dashboard` | Open bills + nav to other sections |
+| `/new` | Capture or upload receipt → AI OCR → edit |
+| `/split/[id]` | Add people + assign items + see live totals |
+| `/split/[id]/send` | Per-person send list with Venmo links + Paid toggle |
+| `/friends` | Persistent friends roster (name + phone + Venmo) |
+| `/settled` | Archive of bills where everyone has paid |
+| `/profile` | Set your own Venmo handle |
 
 ## Live
 
