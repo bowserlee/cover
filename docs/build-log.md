@@ -6,7 +6,7 @@ Tracking hours, AI tool usage, and weekly progress for the class artifact.
 
 | Metric | Value |
 |---|---|
-| Total hours worked | _[fill in weekly]_ |
+| Total hours worked | ~9 (3 hrs × 3 weeks) |
 | % of code AI-generated (estimated) | ~90% (Claude Code) |
 | API costs to date | ~$0.30 (test receipts only) |
 | Projected API cost for full 10 weeks | ~$5 |
@@ -40,11 +40,11 @@ Tracking hours, AI tool usage, and weekly progress for the class artifact.
 - **Supabase pooler URL (port 6543), not direct (5432):** Vercel serverless functions open a new Postgres connection per request — direct URL would exhaust free-tier connection limit fast.
 - **`proxy.ts` instead of `middleware.ts`:** Next.js 16 renamed the file convention. Caught from reading the node_modules docs before writing code — training data lag would've sent me to the deprecated pattern.
 
-**Hours:** _[fill in]_
+**Hours:** ~3
 
-**What was hard:** _[fill in]_
+**What was hard:** supabase setup honestly. there's like a million different connection string options and i didn't know which one to use, the pooler vs the direct one. and then setting up google oauth meant making a whole separate google cloud project just to turn on sign-in, which felt like overkill for something so basic.
 
-**What surprised me:** _[fill in]_
+**What surprised me:** how fast you can actually deploy a real working app. like from zero to a website with auth + database + installable on iphone in basically one session. way easier than i thought it'd be.
 
 ---
 
@@ -70,7 +70,11 @@ Tracking hours, AI tool usage, and weekly progress for the class artifact.
 
 **One bug caught during build:** create-next-app's `globals.css` included a `@media (prefers-color-scheme: dark)` block that flipped text to light when the OS was in dark mode. But Cover hard-codes `bg-white` everywhere, so this made inputs invisible on dark-mode systems. Removed the block entirely — Cover is intentionally light-mode only.
 
-**Hours:** _[fill in]_
+**Hours:** ~3
+
+**What was hard:** tesseract was just bad lol. i was honestly excited about the snap-a-photo thing and then it would get basically nothing right. also the dark mode css thing was annoying because the text in the inputs was invisible on my mac and it took a min to figure out what was happening.
+
+**What surprised me:** i didn't even know what OCR was at the start, and then later finding out you could just give claude a photo and it would tell you what's on it felt kind of like cheating compared to writing actual parsing code.
 
 ---
 
@@ -168,13 +172,11 @@ The placeholder solid-black icon squares were getting embarrassing. Generated a 
 - New routes shipped: `/friends`, `/api/friends`, `/api/friends/[id]`, `/api/ocr`, plus the existing `/split/[id]`, `/split/[id]/send`, `/profile`, `/settled` routes added earlier in the week
 - Files deleted: `tesseract.ts`, `parser.ts`, `parser.test.ts`, `AssignmentModal.tsx` — total churn shows the iteration
 
-**Hours this week:** _[fill in]_
+**Hours this week:** ~3
 
-**What was hard this week:**
-- _[fill in — e.g. deciding when to actually pull the Tesseract \$20 trigger; rewriting the assignment UX after just shipping it]_
+**What was hard this week:** pulling the trigger on swapping to claude vision was harder than it should've been even though the spec literally said i was allowed to. felt weird giving up on the $0 thing. also rewriting the entire assignment ux right after just shipping it kind of stung but the modal version really was slow.
 
-**What surprised me:**
-- _[fill in — e.g. how much better Claude vision was than expected; how natural the select-person-tap-items flow felt once built]_
+**What surprised me:** how much better claude vision was than tesseract — like genuinely night and day. and the select-person-then-tap-items flow ended up feeling way more natural than i expected, even better than the modal version which i had thought was fine.
 
 ---
 
@@ -188,7 +190,6 @@ The end-to-end loop works in production for any user with a Google account: snap
 
 Remaining for the class deadline:
 - [ ] Use it at one real meal with real friends — the actual product test
-- [ ] Fill in the Hours / What was hard / What surprised me sections (weeks 1–3)
 - [ ] Class presentation deck
 - [ ] Optional: Web Push reminders (only if real usage shows friends forgetting to pay)
 - [ ] Optional: design polish pass (typography, animations)
