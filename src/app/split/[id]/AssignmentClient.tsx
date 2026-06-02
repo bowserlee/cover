@@ -7,7 +7,6 @@ import {
   type Participant,
   type FriendOption,
 } from "@/components/ParticipantList";
-import { AssignmentModal } from "@/components/AssignmentModal";
 import { computePerPersonTotals } from "@/lib/split-math/totals";
 
 interface Item {
@@ -50,7 +49,9 @@ export function AssignmentClient({
   const [participants, setParticipants] = useState(initialParticipants);
   const [assignments, setAssignments] = useState(initialAssignments);
   const [friends, setFriends] = useState(initialFriends);
-  const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [activeParticipantId, setActiveParticipantId] = useState<string | null>(
+    null
+  );
   const [globalError, setGlobalError] = useState<string | null>(null);
 
   const totals = useMemo(
@@ -92,7 +93,6 @@ export function AssignmentClient({
     setParticipants((prev) => [...prev, newP]);
 
     if (input.saveAsFriend) {
-      // Best-effort save to friends — don't fail the participant add
       try {
         const fRes = await fetch("/api/friends", {
           method: "POST",
@@ -110,7 +110,7 @@ export function AssignmentClient({
           );
         }
       } catch {
-        // Silent — they got added to the bill which is what matters
+        // Silent — participant add is what matters
       }
     }
   };
@@ -147,30 +147,9 @@ export function AssignmentClient({
       throw new Error(body.error ?? `HTTP ${res.status}`);
     }
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
-  };
-
-  const handleSaveAssignment = async (
-    itemId: string,
-    participantIds: string[]
-  ) => {
-    const res = await fetch(`/api/splits/${splitId}/assignments`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId, participantIds }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error ?? `HTTP ${res.status}`);
+    if (activeParticipantId === participantId) {
+      setActiveParticipantId(null);
     }
-    const { shareFraction } = (await res.json()) as { shareFraction: number };
-    setAssignments((prev) => [
-      ...prev.filter((a) => a.itemId !== itemId),
-      ...participantIds.map((pid) => ({
-        itemId,
-        participantId: pid,
-        shareFraction,
-      })),
-    ]);
   };
 
   const assigneesByItem = useMemo(() => {
@@ -194,10 +173,68 @@ export function AssignmentClient({
     );
   }, [friends, participants]);
 
-  const openItem = openItemId ? items.find((i) => i.id === openItemId) : null;
-  const openItemAssignees = openItemId
-    ? (assigneesByItem.get(openItemId) ?? []).map((p) => p.id)
-    : [];
+  const toggleItemForActive = async (itemId: string) => {
+    if (!activeParticipantId) return;
+
+    const currentAssignees = (assigneesByItem.get(itemId) ?? []).map(
+      (p) => p.id
+    );
+    const isOn = currentAssignees.includes(activeParticipantId);
+    const nextAssignees = isOn
+      ? currentAssignees.filter((id) => id !== activeParticipantId)
+      : [...currentAssignees, activeParticipantId];
+
+    const nextShare =
+      nextAssignees.length > 0 ? 1 / nextAssignees.length : 0;
+    const previousShare =
+      currentAssignees.length > 0 ? 1 / currentAssignees.length : 0;
+
+    // Optimistic: update local state first so taps feel instant
+    setAssignments((prev) => [
+      ...prev.filter((a) => a.itemId !== itemId),
+      ...nextAssignees.map((pid) => ({
+        itemId,
+        participantId: pid,
+        shareFraction: nextShare,
+      })),
+    ]);
+
+    try {
+      const res = await fetch(`/api/splits/${splitId}/assignments`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, participantIds: nextAssignees }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+    } catch (err) {
+      // Revert
+      setAssignments((prev) => [
+        ...prev.filter((a) => a.itemId !== itemId),
+        ...currentAssignees.map((pid) => ({
+          itemId,
+          participantId: pid,
+          shareFraction: previousShare,
+        })),
+      ]);
+      setGlobalError(err instanceof Error ? err.message : "Save failed");
+    }
+  };
+
+  const activeIsOnItem = (itemId: string): boolean => {
+    if (!activeParticipantId) return false;
+    return (assigneesByItem.get(itemId) ?? []).some(
+      (p) => p.id === activeParticipantId
+    );
+  };
+
+  const handleSelectActive = (participantId: string) => {
+    setActiveParticipantId((prev) =>
+      prev === participantId ? null : participantId
+    );
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -217,44 +254,82 @@ export function AssignmentClient({
         <ParticipantList
           participants={participants}
           availableFriends={availableFriends}
+          activeParticipantId={activeParticipantId}
+          onSelectActive={handleSelectActive}
           onAdd={handleAddParticipant}
           onAddFromFriend={handleAddFromFriend}
           onRemove={handleRemoveParticipant}
         />
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Items</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium">Items</h2>
+            {activeParticipantId ? (
+              <p className="text-xs text-neutral-500">
+                Tap items to assign / unassign
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-400">
+                Select a person above first
+              </p>
+            )}
+          </div>
           <ul className="flex flex-col gap-2">
             {items.map((item) => {
               const assignees = assigneesByItem.get(item.id) ?? [];
+              const onItem = activeIsOnItem(item.id);
+              const interactive = !!activeParticipantId;
               return (
                 <li key={item.id}>
                   <button
                     type="button"
-                    onClick={() => setOpenItemId(item.id)}
-                    className="w-full text-left border border-neutral-200 rounded-lg px-3 py-3 hover:bg-neutral-50 transition"
+                    onClick={() => toggleItemForActive(item.id)}
+                    disabled={!interactive}
+                    className={
+                      "w-full text-left rounded-lg px-3 py-3 transition border " +
+                      (onItem
+                        ? "border-black bg-neutral-50"
+                        : "border-neutral-200") +
+                      (interactive
+                        ? " hover:bg-neutral-50 cursor-pointer"
+                        : " cursor-default")
+                    }
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">
+                      <span className="font-medium flex items-center gap-2">
+                        {onItem && (
+                          <span
+                            aria-hidden="true"
+                            className="text-base leading-none"
+                          >
+                            ✓
+                          </span>
+                        )}
                         {item.name}
                         {item.quantity > 1 && (
                           <span className="text-neutral-500">
-                            {" "}
                             ×{item.quantity}
                           </span>
                         )}
                       </span>
-                      <span>${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                      <span>
+                        ${(item.unitPrice * item.quantity).toFixed(2)}
+                      </span>
                     </div>
                     <div className="text-sm mt-1">
                       {assignees.length === 0 ? (
-                        <span className="text-neutral-400">tap to assign</span>
+                        <span className="text-neutral-400">unassigned</span>
                       ) : (
                         <div className="flex flex-wrap gap-1">
                           {assignees.map((a) => (
                             <span
                               key={a.id}
-                              className="bg-neutral-100 rounded-full px-2 py-0.5 text-xs"
+                              className={
+                                "rounded-full px-2 py-0.5 text-xs " +
+                                (a.id === activeParticipantId
+                                  ? "bg-black text-white"
+                                  : "bg-neutral-100")
+                              }
                             >
                               {a.name}
                             </span>
@@ -308,25 +383,6 @@ export function AssignmentClient({
           Continue to send
         </a>
       </main>
-
-      {openItem && (
-        <AssignmentModal
-          itemName={openItem.name}
-          participants={participants}
-          initialAssigneeIds={openItemAssignees}
-          onClose={() => setOpenItemId(null)}
-          onSave={async (participantIds) => {
-            try {
-              await handleSaveAssignment(openItem.id, participantIds);
-            } catch (err) {
-              setGlobalError(
-                err instanceof Error ? err.message : "Save failed"
-              );
-              throw err;
-            }
-          }}
-        />
-      )}
     </div>
   );
 }

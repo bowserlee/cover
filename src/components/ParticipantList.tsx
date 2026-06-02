@@ -20,6 +20,8 @@ export interface FriendOption {
 interface ParticipantListProps {
   participants: Participant[];
   availableFriends: FriendOption[];
+  activeParticipantId: string | null;
+  onSelectActive: (participantId: string) => void;
   onAdd: (input: {
     name: string;
     phone?: string;
@@ -33,6 +35,8 @@ interface ParticipantListProps {
 export function ParticipantList({
   participants,
   availableFriends,
+  activeParticipantId,
+  onSelectActive,
   onAdd,
   onAddFromFriend,
   onRemove,
@@ -60,7 +64,12 @@ export function ParticipantList({
     }
   };
 
-  const handleRemove = async (id: string, name: string) => {
+  const handleRemove = async (
+    e: React.MouseEvent,
+    id: string,
+    name: string
+  ) => {
+    e.stopPropagation();
     if (!confirm(`Remove ${name}?`)) return;
     setRemoveError(null);
     try {
@@ -89,22 +98,49 @@ export function ParticipantList({
 
       {participants.length > 0 && (
         <ul className="flex flex-wrap gap-2">
-          {participants.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center gap-1 bg-neutral-100 rounded-full pl-3 pr-1 py-1 text-sm"
-            >
-              <span>{p.name}</span>
-              <button
-                type="button"
-                onClick={() => handleRemove(p.id, p.name)}
-                className="text-neutral-400 hover:text-red-600 px-1.5"
-                aria-label={`Remove ${p.name}`}
-              >
-                ✕
-              </button>
-            </li>
-          ))}
+          {participants.map((p) => {
+            const isActive = p.id === activeParticipantId;
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelectActive(p.id)}
+                  className={
+                    "flex items-center gap-1 rounded-full pl-3 pr-1 py-1 text-sm transition " +
+                    (isActive
+                      ? "bg-black text-white"
+                      : "bg-neutral-100 hover:bg-neutral-200")
+                  }
+                  aria-pressed={isActive}
+                >
+                  <span>{p.name}</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => handleRemove(e, p.id, p.name)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handleRemove(
+                          e as unknown as React.MouseEvent,
+                          p.id,
+                          p.name
+                        );
+                      }
+                    }}
+                    className={
+                      "px-1.5 cursor-pointer " +
+                      (isActive
+                        ? "text-neutral-300 hover:text-red-300"
+                        : "text-neutral-400 hover:text-red-600")
+                    }
+                    aria-label={`Remove ${p.name}`}
+                  >
+                    ✕
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
