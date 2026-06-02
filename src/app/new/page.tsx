@@ -28,7 +28,11 @@ export default function NewBillPage() {
       setStage("edit");
     } catch (err) {
       console.error("OCR failed:", err);
-      // Fall through to manual entry — empty items is fine, user can add
+      const errText =
+        err instanceof Error ? err.message : "Unknown error";
+      setErrorMsg(
+        `Couldn't read the receipt automatically (${errText}). You can add items manually below.`
+      );
       setStage("edit");
     }
   };
