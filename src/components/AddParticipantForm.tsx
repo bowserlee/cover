@@ -7,14 +7,21 @@ interface AddParticipantFormProps {
     name: string;
     phone?: string;
     venmoHandle?: string;
+    saveAsFriend: boolean;
   }) => Promise<void>;
   onCancel: () => void;
+  showSaveAsFriend: boolean;
 }
 
-export function AddParticipantForm({ onAdd, onCancel }: AddParticipantFormProps) {
+export function AddParticipantForm({
+  onAdd,
+  onCancel,
+  showSaveAsFriend,
+}: AddParticipantFormProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [venmo, setVenmo] = useState("");
+  const [saveAsFriend, setSaveAsFriend] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,10 +38,12 @@ export function AddParticipantForm({ onAdd, onCancel }: AddParticipantFormProps)
         name: name.trim(),
         phone: phone.trim() || undefined,
         venmoHandle: venmo.trim() || undefined,
+        saveAsFriend,
       });
       setName("");
       setPhone("");
       setVenmo("");
+      setSaveAsFriend(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add");
     } finally {
@@ -69,6 +78,17 @@ export function AddParticipantForm({ onAdd, onCancel }: AddParticipantFormProps)
         placeholder="Venmo handle (optional)"
         className="border border-neutral-200 rounded px-2 py-1.5 text-base"
       />
+      {showSaveAsFriend && (
+        <label className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={saveAsFriend}
+            onChange={(e) => setSaveAsFriend(e.target.checked)}
+            className="w-4 h-4"
+          />
+          Also save to friends
+        </label>
+      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button

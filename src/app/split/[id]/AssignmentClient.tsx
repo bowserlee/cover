@@ -2,7 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ParticipantList, type Participant } from "@/components/ParticipantList";
+import {
+  ParticipantList,
+  type Participant,
+  type FriendOption,
+} from "@/components/ParticipantList";
 import { AssignmentModal } from "@/components/AssignmentModal";
 import { computePerPersonTotals } from "@/lib/split-math/totals";
 
@@ -28,6 +32,7 @@ interface AssignmentClientProps {
   items: Item[];
   initialParticipants: Participant[];
   initialAssignments: Assignment[];
+  initialFriends: FriendOption[];
 }
 
 export function AssignmentClient({
@@ -39,10 +44,12 @@ export function AssignmentClient({
   items,
   initialParticipants,
   initialAssignments,
+  initialFriends,
 }: AssignmentClientProps) {
   const router = useRouter();
   const [participants, setParticipants] = useState(initialParticipants);
   const [assignments, setAssignments] = useState(initialAssignments);
+  const [friends, setFriends] = useState(initialFriends);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
@@ -66,15 +73,62 @@ export function AssignmentClient({
     name: string;
     phone?: string;
     venmoHandle?: string;
+    saveAsFriend: boolean;
   }) => {
     const res = await fetch(`/api/splits/${splitId}/participants`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        name: input.name,
+        phone: input.phone,
+        venmoHandle: input.venmoHandle,
+      }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error ?? `HTTP ${res.status}`);
+    }
+    const newP = (await res.json()) as Participant;
+    setParticipants((prev) => [...prev, newP]);
+
+    if (input.saveAsFriend) {
+      // Best-effort save to friends — don't fail the participant add
+      try {
+        const fRes = await fetch("/api/friends", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: input.name,
+            phone: input.phone,
+            venmoHandle: input.venmoHandle,
+          }),
+        });
+        if (fRes.ok) {
+          const newFriend = (await fRes.json()) as FriendOption;
+          setFriends((prev) =>
+            [...prev, newFriend].sort((a, b) => a.name.localeCompare(b.name))
+          );
+        }
+      } catch {
+        // Silent — they got added to the bill which is what matters
+      }
+    }
+  };
+
+  const handleAddFromFriend = async (friend: FriendOption) => {
+    const res = await fetch(`/api/splits/${splitId}/participants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: friend.name,
+        phone: friend.phone ?? undefined,
+        venmoHandle: friend.venmoHandle ?? undefined,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setGlobalError(body.error ?? `HTTP ${res.status}`);
+      return;
     }
     const newP = (await res.json()) as Participant;
     setParticipants((prev) => [...prev, newP]);
@@ -131,6 +185,15 @@ export function AssignmentClient({
     return map;
   }, [assignments, participants]);
 
+  const availableFriends = useMemo(() => {
+    const participantNames = new Set(
+      participants.map((p) => p.name.toLowerCase())
+    );
+    return friends.filter(
+      (f) => !participantNames.has(f.name.toLowerCase())
+    );
+  }, [friends, participants]);
+
   const openItem = openItemId ? items.find((i) => i.id === openItemId) : null;
   const openItemAssignees = openItemId
     ? (assigneesByItem.get(openItemId) ?? []).map((p) => p.id)
@@ -153,7 +216,9 @@ export function AssignmentClient({
       <main className="px-6 py-8 max-w-md mx-auto flex flex-col gap-8">
         <ParticipantList
           participants={participants}
+          availableFriends={availableFriends}
           onAdd={handleAddParticipant}
+          onAddFromFriend={handleAddFromFriend}
           onRemove={handleRemoveParticipant}
         />
 

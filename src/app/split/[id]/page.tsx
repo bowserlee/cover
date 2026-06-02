@@ -6,6 +6,7 @@ import {
   splitItems,
   participants,
   itemAssignments,
+  friends as friendsTable,
 } from "@/lib/db/schema";
 import { and, eq, asc } from "drizzle-orm";
 import { AssignmentClient } from "./AssignmentClient";
@@ -53,6 +54,12 @@ export default async function SplitDetailPage({
     .innerJoin(splitItems, eq(itemAssignments.itemId, splitItems.id))
     .where(eq(splitItems.splitId, splitId));
 
+  const userFriends = await db
+    .select()
+    .from(friendsTable)
+    .where(eq(friendsTable.userId, user.id))
+    .orderBy(asc(friendsTable.name));
+
   return (
     <AssignmentClient
       splitId={split.id}
@@ -76,6 +83,12 @@ export default async function SplitDetailPage({
         itemId: a.itemId,
         participantId: a.participantId,
         shareFraction: parseFloat(a.shareFraction),
+      }))}
+      initialFriends={userFriends.map((f) => ({
+        id: f.id,
+        name: f.name,
+        phone: f.phone,
+        venmoHandle: f.venmoHandle,
       }))}
     />
   );
