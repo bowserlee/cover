@@ -22,7 +22,7 @@ export default function NewBillPage() {
     setStage("loading");
     setErrorMsg(null);
     try {
-      const { recognizeReceipt } = await import("@/lib/ocr/tesseract");
+      const { recognizeReceipt } = await import("@/lib/ocr/recognize");
       const { parsed } = await recognizeReceipt(file);
       applyParsed(parsed);
       setStage("edit");
