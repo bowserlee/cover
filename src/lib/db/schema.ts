@@ -84,3 +84,14 @@ export const receipts = pgTable("receipts", {
     .notNull()
     .defaultNow(),
 });
+
+export const friends = pgTable("friends", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  venmoHandle: text("venmo_handle"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
