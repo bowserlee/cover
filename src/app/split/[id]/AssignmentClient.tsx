@@ -25,6 +25,7 @@ interface Assignment {
 interface AssignmentClientProps {
   splitId: string;
   billName: string;
+  billStatus: "open" | "closed";
   billSubtotal: number;
   billTax: number;
   billTip: number;
@@ -37,6 +38,7 @@ interface AssignmentClientProps {
 export function AssignmentClient({
   splitId,
   billName,
+  billStatus,
   billSubtotal,
   billTax,
   billTip,
@@ -53,6 +55,10 @@ export function AssignmentClient({
     null
   );
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [name, setName] = useState(billName);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(billName);
+  const [deleting, setDeleting] = useState(false);
 
   const totals = useMemo(
     () =>
@@ -236,18 +242,103 @@ export function AssignmentClient({
     );
   };
 
+  const handleSaveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      setNameDraft(name);
+      setEditingName(false);
+      return;
+    }
+    if (trimmed === name) {
+      setEditingName(false);
+      return;
+    }
+    const previous = name;
+    setName(trimmed);
+    setEditingName(false);
+    try {
+      const res = await fetch(`/api/splits/${splitId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      router.refresh();
+    } catch (err) {
+      setName(previous);
+      setNameDraft(previous);
+      setGlobalError(err instanceof Error ? err.message : "Rename failed");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (
+      !confirm(`Delete "${name}"? This permanently removes the bill, all items, participants, and assignments.`)
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setGlobalError(null);
+    try {
+      const res = await fetch(`/api/splits/${splitId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      router.push(billStatus === "closed" ? "/settled" : "/dashboard");
+      router.refresh();
+    } catch (err) {
+      setDeleting(false);
+      setGlobalError(err instanceof Error ? err.message : "Delete failed");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
-      <header className="flex items-center justify-between px-6 py-4 border-b">
+      <header className="flex items-center justify-between gap-2 px-6 py-4 border-b">
         <button
           type="button"
-          onClick={() => router.push("/dashboard")}
-          className="text-sm text-neutral-500 hover:text-black"
+          onClick={() =>
+            router.push(billStatus === "closed" ? "/settled" : "/dashboard")
+          }
+          className="text-sm text-neutral-500 hover:text-black shrink-0"
         >
           ← Back
         </button>
-        <h1 className="font-semibold">{billName}</h1>
-        <div className="w-12" />
+        {editingName ? (
+          <input
+            type="text"
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={handleSaveName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSaveName();
+              } else if (e.key === "Escape") {
+                setNameDraft(name);
+                setEditingName(false);
+              }
+            }}
+            autoFocus
+            className="font-semibold text-center bg-transparent border-b border-neutral-300 focus:border-black outline-none min-w-0 flex-1 max-w-[200px]"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setNameDraft(name);
+              setEditingName(true);
+            }}
+            className="font-semibold truncate hover:underline decoration-dotted underline-offset-4"
+            aria-label="Rename bill"
+          >
+            {name}
+          </button>
+        )}
+        <div className="w-12 shrink-0" />
       </header>
 
       <main className="px-6 py-8 max-w-md mx-auto flex flex-col gap-8">
@@ -382,6 +473,15 @@ export function AssignmentClient({
         >
           Continue to send
         </a>
+
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="self-center text-sm text-red-600 hover:text-red-800 disabled:opacity-50 transition mt-2"
+        >
+          {deleting ? "Deleting…" : "Delete bill"}
+        </button>
       </main>
     </div>
   );

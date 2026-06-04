@@ -64,6 +64,7 @@ export default async function SplitDetailPage({
     <AssignmentClient
       splitId={split.id}
       billName={split.name}
+      billStatus={split.status}
       billSubtotal={parseFloat(split.subtotal)}
       billTax={parseFloat(split.tax)}
       billTip={parseFloat(split.tip)}
