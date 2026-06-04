@@ -69,6 +69,22 @@ Remaining: optional Web Push reminders (Plan 6 if needed), design polish pass, t
 
 **Install on iPhone:** open the URL in Safari → Share → Add to Home Screen. Opens fullscreen like a native app, auto-updates on every git push.
 
+## Usage
+
+How to use the deployed app:
+
+1. Visit **https://cover-nine-psi.vercel.app** on your phone (Safari on iPhone, Chrome on Android) or laptop
+2. Sign in with your **Google account**
+3. *(Optional but recommended on iPhone)* Tap **Share → Add to Home Screen** to install Cover so it opens fullscreen like a native app
+4. Tap **Profile** in the dashboard header and add your **Venmo handle** — this is the handle your friends will pay you at
+5. Tap **New bill** → take a photo or upload a receipt → wait ~3 sec for AI parsing → edit any items the model got wrong → **Save bill**
+6. From the dashboard, tap the saved bill to open the assignment screen
+7. Add the people at the meal — type **+ Add new**, or one-tap from your saved **Friends** roster (manage at `/friends`)
+8. Optional: tap **+ Me** to include yourself so your share is counted in the totals
+9. Tap a person at the top to make them "active," then tap items to assign them. Totals reconcile live with proportional tax + tip
+10. When done, tap **Continue to send** → tap **Send** on each person's card → your phone's native share sheet pops up → text them their Venmo link (skip yourself; you don't owe yourself anything)
+11. Mark each person **Paid** as they pay you back → the bill auto-archives to `/settled` when everyone's done
+
 ## Who this is for & potential use cases
 
 Cover targets the exact moment friction shows up in real life: a group meal where one person fronts the bill. Direct use cases:
@@ -115,11 +131,115 @@ Per the CS 153 AI policy, full disclosure of how AI was used:
 
 Specs live at [`docs/specs/`](./docs/specs/). Phased implementation plans live at [`docs/plans/`](./docs/plans/). Class artifact at [`docs/build-log.md`](./docs/build-log.md).
 
-## Local development
+## Setup (local development)
+
+**Prerequisites:**
+
+- [Node.js](https://nodejs.org) 20 or higher
+- [pnpm](https://pnpm.io) (the project uses pnpm; npm/yarn will work but pnpm-lock.yaml is the source of truth)
+- A free [Supabase](https://supabase.com) account for the database + Google OAuth
+- A [Google Cloud](https://console.cloud.google.com) project with OAuth 2.0 credentials configured (used for sign-in via Supabase)
+- An [Anthropic](https://console.anthropic.com) API key for receipt OCR (add ~$5 of credit; that should cover months of usage)
+
+**1. Clone the repo:**
 
 ```bash
+git clone https://github.com/bowserlee/cover.git
+cd cover
 pnpm install
-cp .env.example .env.local   # fill in Supabase + Anthropic keys
+```
+
+**2. Create `.env.local`** with the following keys:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-us-west-2.pooler.supabase.com:6543/postgres
+ANTHROPIC_API_KEY=sk-ant-api03-...
+```
+
+- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase dashboard → **Settings → API**
+- `DATABASE_URL`: Supabase dashboard → **Settings → Database → Connection string → Transaction pooler** (port 6543)
+- `ANTHROPIC_API_KEY`: [console.anthropic.com](https://console.anthropic.com) → **API Keys → Create Key**
+
+**3. Configure Google OAuth in Supabase:**
+
+- Google Cloud Console → create an OAuth 2.0 Client ID → add `https://<your-project>.supabase.co/auth/v1/callback` as an authorized redirect URI
+- Supabase → **Authentication → Providers → Google** → enable, paste the Client ID + Secret
+- Supabase → **Authentication → URL Configuration** → add `http://localhost:3000/auth/callback` to the redirect URL allowlist
+
+**4. Apply database migrations:**
+
+```bash
 pnpm db:migrate
+```
+
+(If `pnpm db:migrate` hangs because your network blocks port 6543, paste the SQL in `drizzle/*.sql` into Supabase's web SQL Editor instead.)
+
+**5. Run the dev server:**
+
+```bash
 pnpm dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+**Other commands:**
+
+```bash
+pnpm test        # vitest unit tests
+pnpm build       # production build
+pnpm db:generate # generate a new migration after editing src/lib/db/schema.ts
+node scripts/generate-icons.mjs  # regenerate PWA icons
+```
+
+## Acknowledgements & citations
+
+Cover stands on a lot of free and open-source foundations. None of this would have been doable in 10 weeks solo without:
+
+**Framework + language:**
+
+- [Next.js 16](https://nextjs.org) (Vercel) — React framework powering both the frontend and the API
+- [React 19](https://react.dev) (Meta) — UI library
+- [TypeScript](https://www.typescriptlang.org) (Microsoft) — type safety
+- [Tailwind CSS 4](https://tailwindcss.com) — utility-first styling
+
+**Backend services:**
+
+- [Supabase](https://supabase.com) — Postgres database, Google OAuth, generous free tier
+- [Drizzle ORM](https://orm.drizzle.team) — type-safe SQL queries + migrations
+- [Vercel](https://vercel.com) — hosting on the free Hobby tier with GitHub auto-deploys
+
+**AI runtime:**
+
+- [Anthropic Claude Haiku 4.5 vision](https://www.anthropic.com) — receipt OCR engine (~$0.003 per receipt)
+- [@anthropic-ai/sdk](https://github.com/anthropics/anthropic-sdk-typescript) — official TypeScript client
+
+**Dev / build tools:**
+
+- [pnpm](https://pnpm.io) — package manager
+- [Vitest](https://vitest.dev) — unit test framework
+- [Sharp](https://sharp.pixelplumbing.com) — image processing (used in `scripts/generate-icons.mjs` to render PWA icons)
+- [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API) — browser-native share sheet for sending Venmo links
+
+**Inspiration:**
+
+- [Splitwise](https://www.splitwise.com) — the product Cover deliberately mirrors. The thesis: what required a Splitwise-sized team in 2011 takes one person + AI in 2026.
+- [Plates](https://www.platesapp.com), [Tricount](https://www.tricount.com) — other bill-split apps surveyed during the design phase.
+- Every group dinner at Phi Psi where someone got stuck holding the bill.
+
+**Class context:**
+
+- CS 153 — *The One-Person Frontier Lab* (Stanford, Spring 2026)
+
+**Code provenance:**
+
+No code in this repo was forked from another public repo or copy-pasted from a tutorial. The Supabase + Drizzle scaffolding patterns were ported from my prior personal project [Conductor](https://github.com/bowserlee/conductor) (same author) but rewritten fresh for Cover.
+
+## External resources
+
+- **Live production app:** https://cover-nine-psi.vercel.app
+- **Source code:** https://github.com/bowserlee/cover
+- **Build log + class artifact:** [`docs/build-log.md`](./docs/build-log.md)
+- **Architecture spec:** [`docs/specs/2026-05-17-design.md`](./docs/specs/2026-05-17-design.md)
+- **Implementation plans:** [`docs/plans/`](./docs/plans/)
