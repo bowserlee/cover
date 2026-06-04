@@ -4,6 +4,18 @@
 
 Snap a photo of the receipt, tap who had what, and Cover sends each friend a personalized Venmo link with the exact amount they owe — all from your phone. No more one person fronting the bill and chasing everyone for their share.
 
+**Live:** https://cover-nine-psi.vercel.app · **Repo:** https://github.com/bowserlee/cover · **Class artifact:** [`docs/build-log.md`](./docs/build-log.md)
+
+## Where to find evidence for each rubric category
+
+| Rubric category | Where to find evidence in this repo |
+|---|---|
+| **Problem & Insight** (3) | [Why I'm building this](#why-im-building-this) section below · parent spec [`docs/specs/2026-05-17-design.md`](./docs/specs/2026-05-17-design.md) |
+| **Execution & Technical Work** (5) | Live app at [cover-nine-psi.vercel.app](https://cover-nine-psi.vercel.app) · [Stack](#stack), [Routes](#routes), [Usage](#usage) sections · 5 phased implementation plans in [`docs/plans/`](./docs/plans/) · 100+ commits in git history showing the iteration |
+| **Evaluation & Evidence** (3) | [Evaluation & evidence](#evaluation--evidence) section below · 15 passing unit tests · the OCR pivot is a documented failure analysis with measurable before/after · [Known limitations](#known-limitations) section |
+| **Communication & Presentation** (2) | This README · demo video (submitted separately) · [`docs/specs/`](./docs/specs/) · [`docs/plans/`](./docs/plans/) · [`docs/build-log.md`](./docs/build-log.md) · `pnpm install && pnpm dev` reproducibility |
+| **Process, Integrity & Disclosure** (2) | [AI usage disclosure](#ai-usage-disclosure) section · [Acknowledgements & citations](#acknowledgements--citations) section · git commit history · [`docs/build-log.md`](./docs/build-log.md) week-by-week with hours and reflections · every phase has a spec → plan → commit trail |
+
 ## Why I'm building this
 
 Every time my friends and I go out to eat, someone ends up covering the bill and then has to follow up with everyone to get paid back. Most restaurants only split checks 2–3 ways, and following up feels awkward. Cover fixes that.
@@ -106,6 +118,54 @@ If I had more time:
 - **Receipt image storage** so the host can revisit and re-edit a bill later if a friend disputes a charge
 - **Recurring bills** (rent, utilities) — different mental model from one-off restaurant bills, would need a separate flow
 - **Tax/tip per-participant override** for cases where one person had a dish that was tax-exempt (alcohol in some jurisdictions, etc.)
+
+## Evaluation & evidence
+
+How this project validates its claims and demonstrates iteration:
+
+### Unit tests (15 passing)
+
+| File | What it tests |
+|---|---|
+| [`src/lib/split-math/totals.test.ts`](./src/lib/split-math/totals.test.ts) | Per-person totals math, proportional tax + tip allocation, edge cases (zero subtotal, no assignments, rounding) — 7 cases |
+| [`src/lib/venmo/url.test.ts`](./src/lib/venmo/url.test.ts) | Venmo deep-link URL encoding (special characters, leading `@`, amount formatting) — 5 cases |
+| [`src/lib/venmo/message.test.ts`](./src/lib/venmo/message.test.ts) | Share-message generation with and without a Venmo handle — 3 cases |
+
+Run with `pnpm test`. All 15 pass on `main`.
+
+### Failure analysis — the OCR pivot (Week 3)
+
+The central piece of "attempts to validate claims and understand limitations." The original spec ([`docs/specs/2026-05-17-design.md`](./docs/specs/2026-05-17-design.md)) had this in its Risks section:
+
+> **"Tesseract.js OCR quality"** — if much worse than expected, the magic-moment demo falls flat. Mitigation: "tap to fix" UI from day 1; never block the user on perfect OCR. **Authorize a one-time $20 budget if it becomes a blocker, but treat that as a fallback only.**
+
+The pre-authorized trigger fired:
+
+| Engine | Accuracy on a real-world receipt | Cost per receipt | Code surface |
+|---|---|---|---|
+| Tesseract.js (initial) | ~10% — "basically none of the items correct" | $0 | ~100 lines of parser heuristics + ~10MB WASM bundle |
+| Claude Haiku 4.5 vision (after pivot) | ~95% — "1 thing wrong" | ~$0.003 | ~30 lines of API call, no parser logic, no bundle bloat |
+
+Full narrative in [`docs/build-log.md`](./docs/build-log.md) under Week 3.
+
+### Other measurable outcomes
+
+- **Bundle size:** ~10MB reduction after deleting Tesseract.js entirely from the client bundle
+- **Projected total API cost** for the full 10-week class: **under $5**
+- **Build/typecheck/test:** all green on `main` (production deploys auto-block on failure via Vercel)
+- **Production uptime:** the app has been live and functional since Week 1 deploy
+- **Schedule:** all 5 planned phases shipped by end of Week 3 calendar time — well ahead of the original 10-week scope
+
+### Iteration evidence
+
+- **5 design specs + 5 implementation plans** in `docs/specs/` and `docs/plans/`, each with commit trails
+- **100+ commits** visible in git history showing real progress over time
+- **Mid-project UX rewrite:** I shipped the assignment screen with a modal-based pattern, used it, decided it was too slow, and rewrote it to a select-person-then-tap-items flow. The original code was deleted in a single commit. This is documented in [`docs/build-log.md`](./docs/build-log.md) Week 3 and visible in the commit history.
+- **Plan 5 (friends roster) was not in the original spec** — it emerged from actually thinking about how the product would be used at a real meal, which is the kind of insight you only get by testing your own assumptions
+
+### Limitations (honest list of what doesn't work)
+
+See the [Known limitations](#known-limitations) section directly below for an explicit accounting.
 
 ## Known limitations
 
