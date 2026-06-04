@@ -118,14 +118,63 @@ Honest about what doesn't (yet) work:
 - **Single-host model.** Only the bill creator has an account; participants receive links via share sheet but don't sign up. If a participant wants their own running tab view across multiple hosts, that's not supported yet.
 - **No image storage.** Receipt photos are parsed in memory, used to populate the edit screen, and discarded. The text content survives in the DB; the photo itself doesn't.
 
-## AI tools & disclosure
+## AI usage disclosure
 
-Per the CS 153 AI policy, full disclosure of how AI was used:
+Per CS 153 AI policy: *"The use of AI tools is allowed and in fact encouraged. You must mention how and where tools were used in your Github README file."*
 
-- **Claude Code (Claude Opus 4.7)** was the primary coding partner across all 3 weeks of active development. Estimated ~90% of the code in this repo was AI-generated. Architecture decisions were collaborative — I drove the product direction (what to build, when to swap OCR engines, how the assignment UX should feel) and Claude implemented and iterated. Build-log entries describe the specific moments where Claude pushed back on my plans (e.g., reminding me to pressure-test the OCR pivot, surfacing the spec's pre-authorized $20 budget) and where I pushed back on Claude (e.g., the assignment UX rewrite after the modal version was too slow).
-- **Claude Haiku 4.5 vision** is the runtime OCR engine — every receipt the app processes goes through one Anthropic API call. This is the only paid AI usage and the source of the projected ~$5 in lifetime API costs.
-- **No code was forked or copy-pasted from other repos.** The Supabase auth + Drizzle ORM setup was ported from a previous personal project ([Conductor](https://github.com/bowserlee/conductor)) — same author, same patterns — but written fresh for Cover. Everything else in this repo is original.
-- **Dev tools used:** Vercel for hosting, Drizzle Kit for migrations, Supabase web SQL editor as a fallback when the pooler connection failed locally, pnpm for package management.
+### Build-time AI: Claude Code
+
+**Tool:** [Claude Code](https://claude.com/claude-code) running Claude Opus 4.7.
+
+**How it was used:**
+
+- Wrote roughly **~90% of the code** in this repo from natural-language descriptions
+- Drafted the original design spec and all five implementation plans in `docs/specs/` and `docs/plans/`
+- Wrote all unit tests in `src/**/*.test.ts`
+- Debugged production issues (e.g., the inherited dark-mode CSS bug that made input text invisible, the silent error swallow in the OCR pipeline)
+- Pushed back on my plans when I tried to skip steps (e.g., reminding me to pressure-test the OCR pivot against the spec's pre-authorized budget clause)
+
+**Where in the codebase Claude Code touched:** essentially everywhere. Specifically:
+
+- **All TypeScript source** under `src/` — components, API routes, server pages, library code
+- **Database schema** in `src/lib/db/schema.ts` and migrations in `drizzle/`
+- **Documentation** in `docs/specs/`, `docs/plans/`, and `docs/build-log.md`
+- **Icon generator** in `scripts/generate-icons.mjs`
+- **This README**
+
+**What I did vs Claude:** I owned product direction (what to build, when to pivot OCR engines, the assignment-UX rewrite when the modal version felt slow), tested every change in the browser, caught bugs Claude introduced (e.g., the icon's arc angles were wrong on first render — pointed at the wrong direction), and made the architectural decisions. Claude implemented those decisions and iterated on feedback.
+
+### Runtime AI: Claude Haiku 4.5 vision
+
+**Tool:** [Claude Haiku 4.5](https://www.anthropic.com/news/claude-haiku-4-5) via the Anthropic Messages API.
+
+**How:** The app sends a receipt photo to Claude with a structured-JSON-output prompt. The model returns clean typed data: items (name, quantity, unit price), subtotal, tax, tip. Cost: ~$0.003 per receipt.
+
+**Where in the codebase:**
+
+- [`src/app/api/ocr/route.ts`](./src/app/api/ocr/route.ts) — server endpoint that calls Claude vision
+- [`src/lib/ocr/recognize.ts`](./src/lib/ocr/recognize.ts) — client-side wrapper that posts the photo to the endpoint
+- [`src/lib/ocr/types.ts`](./src/lib/ocr/types.ts) — shared types for the parsed receipt structure
+
+**Why it's here instead of free OCR:** I originally used Tesseract.js (open-source, in-browser OCR) for zero ongoing cost. On a real-world test receipt it got "basically nothing right." The original spec pre-authorized swapping to a paid AI vision API with a $20 budget cap if this happened — that trigger fired in Week 3 and the swap to Claude vision took accuracy from ~10% to ~95%. The full story is in [`docs/build-log.md`](./docs/build-log.md) under Week 3.
+
+### What was NOT AI-generated
+
+- Product direction, feature scope, and all priority decisions
+- All UX testing and "this feels wrong, change it" feedback that drove iteration
+- The Supabase project, Google Cloud OAuth credentials, Vercel deployment configuration, and Anthropic API key (set up manually through the respective web consoles)
+- The thesis framing and class artifact narrative
+
+### Other dev tools
+
+- **Vercel** for hosting + auto-deploy on git push
+- **Supabase** for Postgres + Google OAuth
+- **Drizzle Kit** for schema migrations
+- **Supabase web SQL Editor** — used as a fallback for two migrations my local network couldn't apply via `pnpm db:migrate` (port 6543 was blocked)
+
+### Code provenance
+
+No code in this repo was forked from another public repo or copy-pasted from a tutorial. The Supabase auth + Drizzle ORM setup patterns were ported from my prior personal project [Conductor](https://github.com/bowserlee/conductor) (same author) but rewritten fresh for Cover.
 
 ## Design + plan
 
