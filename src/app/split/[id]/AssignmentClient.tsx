@@ -140,6 +140,24 @@ export function AssignmentClient({
     setParticipants((prev) => [...prev, newP]);
   };
 
+  const handleAddSelf = async () => {
+    const res = await fetch(`/api/splits/${splitId}/participants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Me",
+        isHost: true,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setGlobalError(body.error ?? `HTTP ${res.status}`);
+      return;
+    }
+    const newP = (await res.json()) as Participant;
+    setParticipants((prev) => [...prev, newP]);
+  };
+
   const handleRemoveParticipant = async (participantId: string) => {
     const res = await fetch(
       `/api/splits/${splitId}/participants?participantId=${participantId}`,
@@ -349,6 +367,7 @@ export function AssignmentClient({
           onSelectActive={handleSelectActive}
           onAdd={handleAddParticipant}
           onAddFromFriend={handleAddFromFriend}
+          onAddSelf={handleAddSelf}
           onRemove={handleRemoveParticipant}
         />
 

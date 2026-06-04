@@ -52,15 +52,18 @@ export async function PUT(
       )
     );
 
-  // Auto-update split status: closed if all participants paid, open otherwise
+  // Auto-update split status: closed if all NON-HOST participants paid.
+  // Host participants don't need to pay themselves back, so they don't
+  // count toward settlement.
   const splitParticipants = await db
-    .select({ paid: participants.paid })
+    .select({ paid: participants.paid, isHost: participants.isHost })
     .from(participants)
     .where(eq(participants.splitId, splitId));
 
+  const settleParticipants = splitParticipants.filter((p) => !p.isHost);
   const allPaid =
-    splitParticipants.length > 0 &&
-    splitParticipants.every((p) => p.paid);
+    settleParticipants.length > 0 &&
+    settleParticipants.every((p) => p.paid);
 
   await db
     .update(splits)

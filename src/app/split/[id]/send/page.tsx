@@ -91,19 +91,26 @@ export default async function SendPage({
     parseFloat(split.tax) +
     parseFloat(split.tip);
 
+  // Host participants are included in totals math (so tax/tip allocation
+  // stays correct with the host's share factored in) but excluded from
+  // the send list — you don't send a Venmo link to yourself.
+  const sendParticipants = splitParticipants
+    .filter((p) => !p.isHost)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      venmoHandle: p.venmoHandle,
+      paid: p.paid,
+      amount: totalsByParticipantId.get(p.id) ?? 0,
+    }));
+
   return (
     <SendClient
       splitId={split.id}
       billName={split.name}
       billTotal={billTotal}
       hostVenmoHandle={profile.venmoHandle}
-      initialParticipants={splitParticipants.map((p) => ({
-        id: p.id,
-        name: p.name,
-        venmoHandle: p.venmoHandle,
-        paid: p.paid,
-        amount: totalsByParticipantId.get(p.id) ?? 0,
-      }))}
+      initialParticipants={sendParticipants}
     />
   );
 }

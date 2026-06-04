@@ -79,6 +79,7 @@ export default async function SplitDetailPage({
         name: p.name,
         phone: p.phone,
         venmoHandle: p.venmoHandle,
+        isHost: p.isHost,
       }))}
       initialAssignments={assignments.map((a) => ({
         itemId: a.itemId,

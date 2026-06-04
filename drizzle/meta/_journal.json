@@ -15,6 +15,13 @@
       "when": 1780373723788,
       "tag": "0001_cuddly_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780533282019,
+      "tag": "0002_organic_cannonball",
+      "breakpoints": true
     }
   ]
 }

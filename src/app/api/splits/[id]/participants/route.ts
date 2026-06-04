@@ -8,6 +8,7 @@ interface AddParticipantPayload {
   name: string;
   phone?: string;
   venmoHandle?: string;
+  isHost?: boolean;
 }
 
 async function ownsSplit(splitId: string, userId: string): Promise<boolean> {
@@ -48,7 +49,27 @@ export async function POST(
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
 
+  const isHost = payload.isHost === true;
+
   const db = getDb();
+
+  // Only one host participant per bill
+  if (isHost) {
+    const [existingHost] = await db
+      .select({ id: participants.id })
+      .from(participants)
+      .where(
+        and(eq(participants.splitId, splitId), eq(participants.isHost, true))
+      )
+      .limit(1);
+    if (existingHost) {
+      return NextResponse.json(
+        { error: "host_already_added" },
+        { status: 409 }
+      );
+    }
+  }
+
   const [newParticipant] = await db
     .insert(participants)
     .values({
@@ -56,12 +77,14 @@ export async function POST(
       name: payload.name.trim(),
       phone: payload.phone?.trim() || null,
       venmoHandle: payload.venmoHandle?.trim() || null,
+      isHost,
     })
     .returning({
       id: participants.id,
       name: participants.name,
       phone: participants.phone,
       venmoHandle: participants.venmoHandle,
+      isHost: participants.isHost,
     });
 
   return NextResponse.json(newParticipant, { status: 201 });

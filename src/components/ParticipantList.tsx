@@ -8,6 +8,7 @@ export interface Participant {
   name: string;
   phone: string | null;
   venmoHandle: string | null;
+  isHost: boolean;
 }
 
 export interface FriendOption {
@@ -29,6 +30,7 @@ interface ParticipantListProps {
     saveAsFriend: boolean;
   }) => Promise<void>;
   onAddFromFriend: (friend: FriendOption) => Promise<void>;
+  onAddSelf: () => Promise<void>;
   onRemove: (participantId: string) => Promise<void>;
 }
 
@@ -39,11 +41,24 @@ export function ParticipantList({
   onSelectActive,
   onAdd,
   onAddFromFriend,
+  onAddSelf,
   onRemove,
 }: ParticipantListProps) {
   const [adding, setAdding] = useState(false);
   const [busyFriendId, setBusyFriendId] = useState<string | null>(null);
+  const [busyAddingSelf, setBusyAddingSelf] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+
+  const hostAlreadyAdded = participants.some((p) => p.isHost);
+
+  const handleAddSelf = async () => {
+    setBusyAddingSelf(true);
+    try {
+      await onAddSelf();
+    } finally {
+      setBusyAddingSelf(false);
+    }
+  };
 
   const handleAdd = async (input: {
     name: string;
@@ -86,13 +101,25 @@ export function ParticipantList({
       <div className="flex items-center justify-between">
         <h2 className="font-medium">People</h2>
         {!adding && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
-            + Add new
-          </button>
+          <div className="flex items-center gap-3 text-sm">
+            {!hostAlreadyAdded && (
+              <button
+                type="button"
+                onClick={handleAddSelf}
+                disabled={busyAddingSelf}
+                className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+              >
+                {busyAddingSelf ? "Adding…" : "+ Me"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              + Add new
+            </button>
+          </div>
         )}
       </div>
 

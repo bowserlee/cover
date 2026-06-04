@@ -58,6 +58,7 @@ export const participants = pgTable("participants", {
     .notNull()
     .default("0"),
   paid: boolean("paid").notNull().default(false),
+  isHost: boolean("is_host").notNull().default(false),
 });
 
 export const itemAssignments = pgTable("item_assignments", {
